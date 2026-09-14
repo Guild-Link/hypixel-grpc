@@ -1,7 +1,6 @@
 name: update-deploy
 
 on:
-  workflow_dispatch:
   workflow_run:
     workflows: [build]
     types: [completed]
@@ -48,7 +47,7 @@ jobs:
       - name: Checkout deploy repository
         uses: actions/checkout@v7
         with:
-          repository: ${{ github.repository_owner }}/${{ env.DEPLOY_REPO }}
+          repository: ${{ github.repository_owner }}/${{ env.REPO }}
           token: ${{ steps.deploy-token.outputs.token }}
 
       - name: Update image
