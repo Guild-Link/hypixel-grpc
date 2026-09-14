@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	sc "github.com/DuckySoLucky/SkyCrypt-Types"
-	"github.com/guild-link/backend/pkg/cache"
-	"github.com/guild-link/backend/pkg/compatlink"
-	"github.com/guild-link/backend/pkg/mojang"
+	"github.com/guild-link/hypixel-grpc/pkg/cache"
+	"github.com/guild-link/hypixel-grpc/pkg/compatlink"
+	"github.com/guild-link/hypixel-grpc/pkg/mojang"
 )
 
 type Client struct {

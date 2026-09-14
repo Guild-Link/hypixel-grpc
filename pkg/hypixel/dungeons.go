@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/guild-link/backend/pkg/math"
+	"github.com/guild-link/hypixel-grpc/pkg/math"
 )
 
 func (c *Client) GetDungeons(ctx context.Context, username, profileName string) (*DungeonStats, error) {

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guild-link/backend/pkg/cache"
-	"github.com/guild-link/backend/pkg/compatlink"
-	"github.com/guild-link/backend/pkg/mojang"
+	"github.com/guild-link/hypixel-grpc/pkg/cache"
+	"github.com/guild-link/hypixel-grpc/pkg/compatlink"
+	"github.com/guild-link/hypixel-grpc/pkg/mojang"
 )
 
 func NewClient(c *cache.Cache, apiKey, compatURL string) *Client {

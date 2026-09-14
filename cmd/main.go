@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/guild-link/backend/internal/hypixel"
-	"github.com/guild-link/backend/pkg/cache"
-	"github.com/guild-link/backend/pkg/common"
+	"github.com/guild-link/hypixel-grpc/internal/hypixel"
+	"github.com/guild-link/hypixel-grpc/pkg/cache"
+	"github.com/guild-link/hypixel-grpc/pkg/common"
 	"google.golang.org/grpc"
 )
 

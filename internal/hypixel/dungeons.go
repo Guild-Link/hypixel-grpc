@@ -3,7 +3,7 @@ package hypixel
 import (
 	"context"
 
-	pb "github.com/guild-link/backend/proto/hypixel"
+	pb "github.com/guild-link/hypixel-grpc/proto"
 )
 
 func (s *Server) GetDungeons(ctx context.Context, req *pb.SkyBlockRequest) (*pb.DungeonsResponse, error) {

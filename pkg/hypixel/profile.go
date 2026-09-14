@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	sc "github.com/DuckySoLucky/SkyCrypt-Types"
-	"github.com/guild-link/backend/pkg/mojang"
+	"github.com/guild-link/hypixel-grpc/pkg/mojang"
 )
 
 func (c *Client) GetRawProfiles(ctx context.Context, username string) (*mojang.Profile, []json.RawMessage, error) {

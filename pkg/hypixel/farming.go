@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/guild-link/backend/pkg/math"
+	"github.com/guild-link/hypixel-grpc/pkg/math"
 )
 
 func (c *Client) GetFarming(ctx context.Context, username, profileName string) (*FarmingData, error) {
