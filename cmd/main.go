@@ -41,6 +41,7 @@ func main() {
 
 		return resp, err
 	}))
+
 	hypixel.Register(server, cache, apiKey, compatURL)
 
 	go func() {

@@ -1,34 +1,35 @@
 package hypixel
 
-import (
-	"net/http"
-
-	sc "github.com/DuckySoLucky/SkyCrypt-Types"
-	"github.com/guild-link/hypixel-grpc/pkg/cache"
-	"github.com/guild-link/hypixel-grpc/pkg/compatlink"
-	"github.com/guild-link/hypixel-grpc/pkg/mojang"
-)
-
-type Client struct {
-	apiKey string
-	http   http.Client
-
-	cache  *cache.Cache
-	mojang *mojang.Client
-	compat *compatlink.Client
+type Profile struct {
+	ProfileID string            `json:"profile_id"`
+	CuteName  string            `json:"cute_name"`
+	Selected  bool              `json:"selected"`
+	Members   map[string]Member `json:"members"`
 }
 
-type SkyBlockProfile struct {
-	Mojang *mojang.Profile
+type Member struct {
+	PlayerData struct {
+		Experience struct {
+			SkillFarming float64 `json:"SKILL_FARMING"`
+		} `json:"experience"`
+	} `json:"player_data"`
 
-	ID   string
-	Name string
+	Garden struct {
+		Experience float64 `json:"garden_experience"`
+	} `json:"garden_player_data"`
 
-	Data *sc.Member
-}
+	Dungeons struct {
+		DungeonTypes map[string]struct {
+			Experience       float64            `json:"experience"`
+			TierCompletions  map[string]float64 `json:"tier_completions"`
+			FastestTimeSPlus map[string]float64 `json:"fastest_time_s_plus"`
+		} `json:"dungeon_types"`
 
-type Networth struct {
-	Total       float64
-	Unsoulbound float64
-	Profile     *SkyBlockProfile
+		Classes map[string]struct {
+			Experience float64 `json:"experience"`
+		} `json:"player_classes"`
+
+		SelectedDungeonClass string  `json:"selected_dungeon_class"`
+		Secrets              float64 `json:"secrets"`
+	} `json:"dungeons"`
 }

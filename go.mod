@@ -3,7 +3,6 @@ module github.com/guild-link/hypixel-grpc
 go 1.26.4
 
 require (
-	github.com/DuckySoLucky/SkyCrypt-Types v0.1.26
 	github.com/valkey-io/valkey-go v1.0.77
 	github.com/valkey-io/valkey-go/valkeyaside v1.0.77
 	google.golang.org/grpc v1.83.2
