@@ -1,7 +1,5 @@
 package hypixel
 
-import "github.com/guild-link/hypixel-grpc/pkg/common"
-
 var catacombsXPTable = [...]float64{
 	50, 75, 110, 160, 230, 330, 470, 670, 950, 1340,
 	1890, 2665, 3760, 5260, 7380, 10300, 14400, 20000, 27600, 38000,
@@ -21,40 +19,4 @@ var farmingXPTable = [...]float64{
 
 var gardenXPTable = [...]float64{
 	0, 70, 70, 140, 240, 600, 1500, 2000, 2500, 3000, 10000, 10000, 10000, 10000, 10000,
-}
-
-func calcXPTable(xp float64, table []float64, finalLevelXP ...float64) float64 {
-	level := 0
-	for _, levelXP := range table {
-		if xp < levelXP {
-			return common.RoundToTwo(float64(level) + xp/levelXP)
-		}
-
-		level++
-		xp -= levelXP
-	}
-
-	overflow := 0.0
-	if len(finalLevelXP) > 0 {
-		overflow = finalLevelXP[0]
-	}
-
-	if overflow == 0 {
-		slope := 600_000.0
-		overflow = slope
-		if len(table) > 0 {
-			overflow += table[len(table)-1]
-		}
-
-		for xp >= overflow {
-			level++
-			xp -= overflow
-			overflow += slope
-			if level%10 == 0 {
-				slope *= 2
-			}
-		}
-	}
-
-	return common.RoundToTwo(float64(level) + xp/overflow)
 }

@@ -1,4 +1,4 @@
-package hypixel
+package skyblock
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 )
 
 func (s *Server) GetFarming(ctx context.Context, req *pb.SkyBlockRequest) (*pb.FarmingResponse, error) {
-	player, data, rawProfile, err := s.GetRawProfile(ctx, req.GetUsername(), req.GetProfile())
+	player, data, rawProfile, err := s.hypixel.GetRawProfile(ctx, req.GetUsername(), req.GetProfile())
 	if err != nil {
 		return nil, err
 	}
 
-	profile, err := mkProfile(player, data)
+	profile, err := hypixel.ParseProfile(player, data)
 	if err != nil {
 		return nil, err
 	}
@@ -23,14 +23,16 @@ func (s *Server) GetFarming(ctx context.Context, req *pb.SkyBlockRequest) (*pb.F
 		return nil, err
 	}
 
-	gardenXP := profile.Data.Garden.Experience
 	farmingXP := profile.Data.PlayerData.Experience.SkillFarming
+	gardenXP := profile.Data.Garden.Experience
 
 	return &pb.FarmingResponse{
-		GardenLevel:  hypixel.GardenLevel(gardenXP),
 		FarmingLevel: hypixel.FarmingLevel(farmingXP),
+		GardenLevel:  hypixel.GardenLevel(gardenXP),
+		Weight:       weight.TotalWeight,
 		FarmingXp:    farmingXP,
 		GardenXp:     gardenXP,
-		Weight:       weight.TotalWeight,
+		Profile:      profile.ProfileProto(),
+		User:         profile.UserProto(),
 	}, nil
 }

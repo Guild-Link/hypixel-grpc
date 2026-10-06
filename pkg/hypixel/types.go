@@ -1,13 +1,49 @@
 package hypixel
 
-type Profile struct {
-	ProfileID string            `json:"profile_id"`
-	CuteName  string            `json:"cute_name"`
-	Selected  bool              `json:"selected"`
-	Members   map[string]Member `json:"members"`
+import (
+	"net/http"
+
+	"github.com/guild-link/hypixel-grpc/pkg/cache"
+	"github.com/guild-link/hypixel-grpc/pkg/mojang"
+	pb "github.com/guild-link/hypixel-grpc/proto"
+)
+
+type Client struct {
+	apiKey string
+	http   http.Client
+
+	cache  *cache.Cache
+	mojang *mojang.Client
 }
 
-type Member struct {
+type SkyBlockProfile struct {
+	Mojang *mojang.Profile
+	Data   *MemberData
+
+	Name string
+	ID   string
+}
+
+func (p *SkyBlockProfile) ProfileProto() *pb.Profile {
+	return &pb.Profile{Name: p.Name, Id: p.ID}
+}
+
+func (p *SkyBlockProfile) UserProto() *pb.User {
+	return &pb.User{Name: p.Mojang.Name, Id: p.Mojang.ID}
+}
+
+type ProfileData struct {
+	ProfileID string                `json:"profile_id"`
+	CuteName  string                `json:"cute_name"`
+	Selected  bool                  `json:"selected"`
+	Members   map[string]MemberData `json:"members"`
+
+	Banking struct {
+		Balance *float64 `json:"balance"`
+	} `json:"banking"`
+}
+
+type MemberData struct {
 	PlayerData struct {
 		Experience struct {
 			SkillFarming float64 `json:"SKILL_FARMING"`
