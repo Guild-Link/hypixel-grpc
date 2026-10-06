@@ -18,11 +18,7 @@ func (c *Client) GetFarming(ctx context.Context, username, profileName string) (
 	if err != nil {
 		return nil, err
 	}
-	if profile.Data == nil {
-		return nil, fmt.Errorf("member %s not found in profile %s", player.ID, profile.Name)
-	}
-
-	weight, err := c.compat.FarmingWeight(ctx, rawProfile, player.ID)
+	weight, err := c.compat.FarmingWeight(ctx, rawProfile, player.ID, profile.ID)
 	if err != nil {
 		return nil, err
 	}

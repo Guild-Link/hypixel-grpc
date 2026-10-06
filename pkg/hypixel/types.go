@@ -21,12 +21,14 @@ type Client struct {
 type SkyBlockProfile struct {
 	Mojang *mojang.Profile
 
-	Selected bool
-	ID       string
-	Name     string
-	GameMode string
+	ID   string
+	Name string
 
-	Data              *sc.Member
-	Banking           *sc.Banking
-	CommunityUpgrades *sc.CommunityUpgrades
+	Data *sc.Member
+}
+
+type Networth struct {
+	Total       float64
+	Unsoulbound float64
+	Profile     *SkyBlockProfile
 }

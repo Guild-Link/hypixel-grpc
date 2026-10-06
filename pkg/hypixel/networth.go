@@ -2,14 +2,9 @@ package hypixel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 )
-
-type Networth struct {
-	Total       float64
-	Unsoulbound float64
-	Profile     *SkyBlockProfile
-}
 
 func (c *Client) GetNetworth(ctx context.Context, username, profileName string) (*Networth, error) {
 	player, rawProfile, err := c.GetRawProfile(ctx, username, profileName)
@@ -22,23 +17,44 @@ func (c *Client) GetNetworth(ctx context.Context, username, profileName string) 
 		return nil, err
 	}
 
-	if profile.Data == nil {
-		return nil, fmt.Errorf("member %s not found in profile %s", player.ID, profile.Name)
-	}
-
 	museum, err := c.getRawMuseum(ctx, profile.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := c.compat.Networth(ctx, rawProfile, museum, profile.Mojang.ID)
+	var profileData struct {
+		Members map[string]json.RawMessage `json:"members"`
+		Banking *struct {
+			Balance *float64 `json:"balance"`
+		} `json:"banking"`
+	}
+
+	if err := json.Unmarshal(rawProfile, &profileData); err != nil {
+		return nil, fmt.Errorf("decode Hypixel profile: %w", err)
+	}
+
+	var museumData struct {
+		Members map[string]json.RawMessage `json:"members"`
+	}
+
+	if err := json.Unmarshal(museum, &museumData); err != nil {
+		return nil, fmt.Errorf("decode Hypixel museum response: %w", err)
+	}
+
+	var bank *float64
+	if profileData.Banking != nil {
+		bank = profileData.Banking.Balance
+	}
+
+	uuid := profile.Mojang.ID
+	result, err := c.compat.Networth(ctx, profileData.Members[uuid], museumData.Members[uuid], bank, uuid, profile.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Networth{
-		Total:       result.Networth,
 		Unsoulbound: result.UnsoulboundNetworth,
+		Total:       result.Networth,
 		Profile:     profile,
 	}, nil
 }

@@ -9,6 +9,8 @@ import (
 
 	sc "github.com/DuckySoLucky/SkyCrypt-Types"
 	"github.com/guild-link/hypixel-grpc/pkg/mojang"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c *Client) GetRawProfiles(ctx context.Context, username string) (*mojang.Profile, []json.RawMessage, error) {
@@ -39,6 +41,10 @@ func (c *Client) GetRawProfile(ctx context.Context, username, profileName string
 		return nil, nil, err
 	}
 
+	if len(rawProfiles) == 0 {
+		return nil, nil, status.Errorf(codes.NotFound, "%s has no SkyBlock profiles", player.Name)
+	}
+
 	for _, rawProfile := range rawProfiles {
 		var profile struct {
 			Name     string `json:"cute_name"`
@@ -54,10 +60,10 @@ func (c *Client) GetRawProfile(ctx context.Context, username, profileName string
 	}
 
 	if profileName == "" {
-		return nil, nil, fmt.Errorf("selected profile not found")
+		return nil, nil, status.Errorf(codes.NotFound, "%s has no selected profile", player.Name)
 	}
 
-	return nil, nil, fmt.Errorf("profile %s not found", profileName)
+	return nil, nil, status.Errorf(codes.NotFound, "%s has no profile named %s", player.Name, profileName)
 }
 
 func parseRawProfile(player *mojang.Profile, rawProfile json.RawMessage) (*SkyBlockProfile, error) {
@@ -66,20 +72,16 @@ func parseRawProfile(player *mojang.Profile, rawProfile json.RawMessage) (*SkyBl
 		return nil, fmt.Errorf("decode Hypixel profile: %w", err)
 	}
 
-	var memberData *sc.Member
-	if member, ok := data.Members[player.ID]; ok {
-		memberData = &member
+	member, ok := data.Members[player.ID]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "%s is not a member of profile %s", player.Name, data.CuteName)
 	}
 
 	return &SkyBlockProfile{
-		ID:                data.ProfileID,
-		Name:              data.CuteName,
-		Mojang:            player,
-		GameMode:          data.GameMode,
-		Selected:          data.Selected,
-		Data:              memberData,
-		Banking:           data.Banking,
-		CommunityUpgrades: data.CommunityUpgrades,
+		ID:     data.ProfileID,
+		Name:   data.CuteName,
+		Data:   &member,
+		Mojang: player,
 	}, nil
 }
 
@@ -107,13 +109,5 @@ func (c *Client) GetProfile(ctx context.Context, username, profileName string) (
 		return nil, err
 	}
 
-	profile, err := parseRawProfile(player, rawProfile)
-	if err != nil {
-		return nil, err
-	}
-	if profile.Data == nil {
-		return nil, fmt.Errorf("member %s not found in profile %s", player.ID, profile.Name)
-	}
-
-	return profile, nil
+	return parseRawProfile(player, rawProfile)
 }

@@ -8,6 +8,5 @@ import (
 
 type Cache struct {
 	client  valkeyaside.CacheAsideClient
-	ttl     time.Duration
 	timeout time.Duration
 }

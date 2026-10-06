@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/guild-link/hypixel-grpc/pkg/cache"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func NewClient(cache *cache.Cache) *Client {
@@ -24,7 +26,7 @@ func (c *Client) GetProfile(ctx context.Context, username string) (*Profile, err
 	dest := "https://api.minecraftservices.com/minecraft/profile/lookup/name/" + url.QueryEscape(username)
 	cacheKey := fmt.Sprintf("%s:%s", "mojang", dest)
 
-	body, err := c.cache.Do(ctx, cacheKey, func(ctx context.Context) ([]byte, error) {
+	body, err := c.cache.Do(ctx, cacheKey, 15*time.Minute, func(ctx context.Context) ([]byte, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, dest, nil)
 		if err != nil {
 			return nil, err
@@ -32,7 +34,7 @@ func (c *Client) GetProfile(ctx context.Context, username string) (*Profile, err
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Unavailable, "Mojang API unavailable: %v", err)
 		}
 		defer resp.Body.Close()
 
@@ -41,8 +43,12 @@ func (c *Client) GetProfile(ctx context.Context, username string) (*Profile, err
 			return nil, err
 		}
 
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "player %s not found", username)
+		}
+
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("mojang returned %s: %s", resp.Status, body)
+			return nil, status.Errorf(codes.Unavailable, "Mojang API returned %s: %s", resp.Status, body)
 		}
 
 		return body, nil

@@ -11,6 +11,8 @@ import (
 	"github.com/guild-link/hypixel-grpc/pkg/cache"
 	"github.com/guild-link/hypixel-grpc/pkg/compatlink"
 	"github.com/guild-link/hypixel-grpc/pkg/mojang"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func NewClient(c *cache.Cache, apiKey, compatURL string) *Client {
@@ -19,7 +21,7 @@ func NewClient(c *cache.Cache, apiKey, compatURL string) *Client {
 		apiKey: apiKey,
 		http:   http.Client{Timeout: 15 * time.Second},
 		mojang: mojang.NewClient(c),
-		compat: compatlink.NewClient(compatURL),
+		compat: compatlink.NewClient(c, compatURL),
 	}
 }
 
@@ -27,7 +29,7 @@ func (c *Client) get(ctx context.Context, path string) ([]byte, error) {
 	dest := fmt.Sprintf("%s/%s", "https://api.hypixel.net/v2", strings.TrimPrefix(path, "/"))
 	cacheKey := fmt.Sprintf("%s:%s", "hypixel", dest)
 
-	return c.cache.Do(ctx, cacheKey, func(ctx context.Context) ([]byte, error) {
+	return c.cache.Do(ctx, cacheKey, 15*time.Minute, func(ctx context.Context) ([]byte, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, dest, nil)
 		if err != nil {
 			return nil, err
@@ -37,7 +39,7 @@ func (c *Client) get(ctx context.Context, path string) ([]byte, error) {
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Unavailable, "Hypixel API unavailable: %v", err)
 		}
 		defer resp.Body.Close()
 
@@ -46,8 +48,12 @@ func (c *Client) get(ctx context.Context, path string) ([]byte, error) {
 			return nil, err
 		}
 
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return nil, status.Error(codes.ResourceExhausted, "Hypixel API rate limit reached, try again later")
+		}
+
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("hypixel returned %s: %s", resp.Status, body)
+			return nil, status.Errorf(codes.Unavailable, "Hypixel API returned %s: %s", resp.Status, body)
 		}
 
 		return body, nil

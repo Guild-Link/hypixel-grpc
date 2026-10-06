@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,33 +12,9 @@ import (
 	"github.com/guild-link/hypixel-grpc/pkg/cache"
 	"github.com/guild-link/hypixel-grpc/pkg/common"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
-
-func newCache(url string) (*cache.Cache, error) {
-	if url == "" {
-		return nil, nil
-	}
-
-	return cache.NewCache(url, 15*time.Minute, 30*time.Second)
-}
-
-func serve(ctx context.Context, reg func(s *grpc.Server)) error {
-	listener, err := net.Listen("tcp", common.DefaultEnv("LISTEN_ADDR", ":50051"))
-	if err != nil {
-		return err
-	}
-	defer listener.Close()
-
-	grpcServer := grpc.NewServer()
-	reg(grpcServer)
-
-	go func() {
-		<-ctx.Done()
-		grpcServer.GracefulStop()
-	}()
-
-	return grpcServer.Serve(listener)
-}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -48,16 +23,32 @@ func main() {
 	compatURL := common.MustEnv("COMPATLINK_URL")
 	apiKey := common.MustEnv("API_KEY")
 
-	c, err := newCache(os.Getenv("VALKEY_URL"))
+	cache, err := cache.NewCache(common.MustEnv("VALKEY_URL"), 30*time.Second)
 	if err != nil {
 		log.Fatalf("failed to initialize cache: %v", err)
 	}
 
-	reg := func(s *grpc.Server) {
-		hypixel.Register(s, c, apiKey, compatURL)
+	listener, err := net.Listen("tcp", common.DefaultEnv("LISTEN_ADDR", ":50051"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if err := serve(ctx, reg); err != nil {
+	server := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		resp, err := handler(ctx, req)
+		if _, ok := status.FromError(err); !ok {
+			err = status.Error(codes.Internal, err.Error())
+		}
+
+		return resp, err
+	}))
+	hypixel.Register(server, cache, apiKey, compatURL)
+
+	go func() {
+		<-ctx.Done()
+		server.GracefulStop()
+	}()
+
+	if err := server.Serve(listener); err != nil {
 		log.Fatal(err)
 	}
 }
