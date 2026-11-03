@@ -9,15 +9,19 @@ import (
 )
 
 type Server struct {
-	pb.UnimplementedSkyBlockServer
+	pb.UnimplementedSkyBlockServiceServer
 
 	hypixel *hypixel.Client
 	compat  *compatlink.Client
 }
 
 func Register(r grpc.ServiceRegistrar, c *cache.Cache, apiKey, compatURL string) {
-	pb.RegisterSkyBlockServer(r, &Server{
+	pb.RegisterSkyBlockServiceServer(r, &Server{
 		compat:  compatlink.NewClient(c, compatURL),
 		hypixel: hypixel.NewClient(c, apiKey),
 	})
+}
+
+func userProto(p *hypixel.Profile) *pb.User {
+	return &pb.User{Name: p.Player.Name, Id: p.Player.ID}
 }

@@ -28,18 +28,13 @@
             runtimeInputs = tools;
 
             text = ''
-              shopt -s globstar nullglob
-
-              files=(proto/**/*.proto)
-
-              for file in "''${files[@]}"; do
-                protoc -I proto \
-                  --go_out=proto \
-                  --go-grpc_out=proto \
-                  --go_opt=paths=source_relative \
-                  --go-grpc_opt=paths=source_relative \
-                  "$file"
-              done
+              shopt -s globstar
+              protoc -I proto \
+                --go_out=proto \
+                --go-grpc_out=proto \
+                --go_opt=paths=source_relative \
+                --go-grpc_opt=paths=source_relative \
+                proto/**/*.proto
             '';
           };
         }

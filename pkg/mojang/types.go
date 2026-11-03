@@ -1,14 +1,9 @@
 package mojang
 
-import (
-	"net/http"
-
-	"github.com/guild-link/hypixel-grpc/pkg/cache"
-)
+import "github.com/guild-link/hypixel-grpc/pkg/cache"
 
 type Client struct {
 	cache *cache.Cache
-	http  http.Client
 }
 
 type Profile struct {

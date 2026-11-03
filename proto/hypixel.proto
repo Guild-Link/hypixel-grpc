@@ -1,13 +1,39 @@
 syntax = "proto3";
-
-option go_package = "github.com/guild-link/hypixel-grpc/proto";
 package hypixel;
 
+option go_package = "github.com/guild-link/hypixel-grpc/proto";
 
-service SkyBlock {
-  rpc GetNetworth(SkyBlockRequest) returns (NetworthResponse);
-  rpc GetDungeons(SkyBlockRequest) returns (DungeonsResponse);
-  rpc GetFarming(SkyBlockRequest) returns (FarmingResponse);
+service SkyBlockService {
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
+}
+
+enum Include {
+  INCLUDE_UNSPECIFIED = 0;
+  INCLUDE_NETWORTH = 1;
+  INCLUDE_GARDEN = 2;
+  INCLUDE_FARMING_WEIGHT = 3;
+}
+
+message GetProfileRequest {
+  string username = 1;
+  string profile = 2;
+  repeated Include include = 3;
+}
+
+message ListProfilesRequest {
+  string username = 1;
+  repeated Include include = 2;
+}
+
+message GetProfileResponse {
+  User user = 1;
+  SkyBlockProfile profile = 2;
+}
+
+message ListProfilesResponse {
+  User user = 1;
+  repeated SkyBlockProfile profiles = 2;
 }
 
 message User {
@@ -15,35 +41,57 @@ message User {
   string id = 2;
 }
 
-message Profile {
+message SkyBlockProfile {
   string name = 1;
   string id = 2;
+  bool selected = 3;
+  Skills skills = 4;
+  Dungeons dungeons = 5;
+  Slayers slayers = 6;
+  Networth networth = 7;
+  optional double farming_weight = 8;
+  Garden garden = 9;
+  GameMode game_mode = 10;
+  double purse = 11;
+  optional double bank = 12;
 }
 
-message SkyBlockRequest {
-  string username = 1;
-  string profile = 2;
+enum GameMode {
+  GAME_MODE_UNSPECIFIED = 0;
+  GAME_MODE_NORMAL = 1;
+  GAME_MODE_IRONMAN = 2;
+  GAME_MODE_STRANDED = 3;
+  GAME_MODE_BINGO = 4;
 }
 
-message NetworthResponse {
-  User user = 1;
-  Profile profile = 2;
-  double total = 3;
-  double unsoulbound = 4;
+enum Skill {
+  SKILL_UNSPECIFIED = 0;
+  SKILL_FARMING = 1;
+  SKILL_MINING = 2;
+  SKILL_COMBAT = 3;
+  SKILL_FORAGING = 4;
+  SKILL_FISHING = 5;
+  SKILL_ENCHANTING = 6;
+  SKILL_ALCHEMY = 7;
+  SKILL_TAMING = 8;
+  SKILL_CARPENTRY = 9;
+  SKILL_HUNTING = 10;
 }
 
-message FarmingResponse {
-  User user = 1;
-  Profile profile = 2;
-  double farming_level = 3;
-  double garden_level = 4;
-  double farming_xp = 5;
-  double garden_xp = 6;
-  double weight = 7;
+message SkillLevel {
+  Skill skill = 1;
+  double level = 2;
+  double xp = 3;
+}
+
+message Skills {
+  double skyblock_level = 1;
+  double skill_average = 2;
+  repeated SkillLevel skills = 3;
 }
 
 enum DungeonClass {
-  DUNGEON_CLASS_UNKNOWN = 0;
+  DUNGEON_CLASS_UNSPECIFIED = 0;
   DUNGEON_CLASS_BERSERK = 1;
   DUNGEON_CLASS_HEALER = 2;
   DUNGEON_CLASS_ARCHER = 3;
@@ -52,7 +100,7 @@ enum DungeonClass {
 }
 
 enum DungeonMode {
-  DUNGEON_MODE_UNKNOWN = 0;
+  DUNGEON_MODE_UNSPECIFIED = 0;
   DUNGEON_MODE_CATACOMBS = 1;
   DUNGEON_MODE_MASTER_CATACOMBS = 2;
 }
@@ -69,13 +117,45 @@ message DungeonFloorStats {
   optional double personal_best = 4;
 }
 
-message DungeonsResponse {
-  User user = 1;
-  Profile profile = 2;
-  double catacombs_level = 3;
-  DungeonClass selected_class = 4;
-  double selected_class_level = 5;
-  uint32 secrets_found = 6;
-  repeated DungeonClassLevel classes = 7;
-  repeated DungeonFloorStats floors = 8;
+message Dungeons {
+  double catacombs_level = 1;
+  double class_average = 2;
+  DungeonClass selected_class = 3;
+  uint32 secrets_found = 4;
+  repeated DungeonClassLevel classes = 5;
+  repeated DungeonFloorStats floors = 6;
+}
+
+enum SlayerType {
+  SLAYER_TYPE_UNSPECIFIED = 0;
+  SLAYER_TYPE_ZOMBIE = 1;
+  SLAYER_TYPE_SPIDER = 2;
+  SLAYER_TYPE_WOLF = 3;
+  SLAYER_TYPE_ENDERMAN = 4;
+  SLAYER_TYPE_BLAZE = 5;
+  SLAYER_TYPE_VAMPIRE = 6;
+}
+
+message SlayerLevel {
+  SlayerType slayer_type = 1;
+  double level = 2;
+  double xp = 3;
+}
+
+message Slayers {
+  double total_xp = 1;
+  repeated SlayerLevel slayers = 2;
+}
+
+message Networth {
+  double total = 1;
+  double unsoulbound = 2;
+}
+
+message Garden {
+  double level = 1;
+  double xp = 2;
+  uint32 visitors_served = 3;
+  uint32 unique_visitors = 4;
+  uint32 plots_unlocked = 5;
 }

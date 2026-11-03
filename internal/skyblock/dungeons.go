@@ -1,44 +1,40 @@
 package skyblock
 
 import (
-	"context"
 	"strconv"
-	"strings"
 
+	"github.com/guild-link/hypixel-grpc/pkg/calculator"
 	"github.com/guild-link/hypixel-grpc/pkg/hypixel"
 	pb "github.com/guild-link/hypixel-grpc/proto"
 )
 
-func (s *Server) GetDungeons(ctx context.Context, req *pb.SkyBlockRequest) (*pb.DungeonsResponse, error) {
-	profile, err := s.hypixel.GetProfile(ctx, req.GetUsername(), req.GetProfile())
-	if err != nil {
-		return nil, err
+func dungeons(member hypixel.MemberData) *pb.Dungeons {
+	d := member.Dungeons
+	response := &pb.Dungeons{
+		CatacombsLevel: calculator.CatacombsLevel(d.DungeonTypes["catacombs"].Experience),
+		SecretsFound:   uint32(d.Secrets),
 	}
 
-	dung := profile.Data.Dungeons
-	response := &pb.DungeonsResponse{
-		CatacombsLevel: hypixel.CatacombsLevel(dung.DungeonTypes["catacombs"].Experience),
-		SecretsFound:   uint32(dung.Secrets),
-		Profile:        profile.ProfileProto(),
-		User:           profile.UserProto(),
-	}
-
+	var classLevels []float64
 	for value := 1; value < len(pb.DungeonClass_name); value++ {
 		class := pb.DungeonClass(value)
-		name := strings.ToLower(strings.TrimPrefix(class.String(), "DUNGEON_CLASS_"))
+		name := enumName(class, "DUNGEON_CLASS_")
 
-		level := hypixel.CatacombsLevel(dung.Classes[name].Experience)
+		xp := d.Classes[name].Experience
+		level := calculator.CatacombsLevel(xp)
 		response.Classes = append(response.Classes, &pb.DungeonClassLevel{DungeonClass: class, Level: level})
+		classLevels = append(classLevels, min(level, 50))
 
-		if name == dung.SelectedDungeonClass {
-			response.SelectedClassLevel = level
+		if name == d.SelectedDungeonClass {
 			response.SelectedClass = class
 		}
 	}
 
+	response.ClassAverage = calculator.Average(classLevels...)
+
 	for value := 1; value < len(pb.DungeonMode_name); value++ {
 		mode := pb.DungeonMode(value)
-		data := dung.DungeonTypes[strings.ToLower(strings.TrimPrefix(mode.String(), "DUNGEON_MODE_"))]
+		data := d.DungeonTypes[enumName(mode, "DUNGEON_MODE_")]
 
 		first := uint32(0)
 		if mode == pb.DungeonMode_DUNGEON_MODE_MASTER_CATACOMBS {
@@ -61,5 +57,5 @@ func (s *Server) GetDungeons(ctx context.Context, req *pb.SkyBlockRequest) (*pb.
 		}
 	}
 
-	return response, nil
+	return response
 }

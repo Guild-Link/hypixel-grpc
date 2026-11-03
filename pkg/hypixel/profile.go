@@ -3,75 +3,89 @@ package hypixel
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
-	"github.com/guild-link/hypixel-grpc/pkg/mojang"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (c *Client) GetProfile(ctx context.Context, username, profileName string) (*SkyBlockProfile, error) {
-	player, data, _, err := c.GetRawProfile(ctx, username, profileName)
+func (c *Client) GetProfile(ctx context.Context, username, profileName string) (*Profile, error) {
+	profiles, err := c.GetProfiles(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return ParseProfile(player, data)
-}
-
-func (c *Client) GetRawProfile(ctx context.Context, username, profileName string) (*mojang.Profile, *ProfileData, json.RawMessage, error) {
-	player, err := c.mojang.GetProfile(ctx, username)
-	if err != nil {
-		return nil, nil, nil, err
+	for _, profile := range profiles {
+		if (profileName == "" && profile.Selected) || strings.EqualFold(profile.Name, profileName) {
+			return profile, nil
+		}
 	}
 
-	body, err := c.get(ctx, "/skyblock/profiles?uuid="+url.QueryEscape(player.ID))
+	player := profiles[0].Player
+	if profileName == "" {
+		return nil, status.Errorf(codes.NotFound, "%s has no selected profile", player.Name)
+	}
+
+	return nil, status.Errorf(codes.NotFound, "%s has no profile named %s", player.Name, profileName)
+}
+
+func (c *Client) GetProfiles(ctx context.Context, username string) ([]*Profile, error) {
+	player, err := c.mojang.GetProfile(ctx, username)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	var data struct {
 		Profiles []json.RawMessage `json:"profiles"`
 	}
 
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, nil, nil, fmt.Errorf("decode Hypixel profiles response: %w", err)
+	if err := c.getJSON(ctx, "/skyblock/profiles?uuid="+url.QueryEscape(player.ID), &data); err != nil {
+		return nil, err
 	}
 
-	if len(data.Profiles) == 0 {
-		return nil, nil, nil, status.Errorf(codes.NotFound, "%s has no SkyBlock profiles", player.Name)
-	}
-
-	for _, rawProfile := range data.Profiles {
-		var profile ProfileData
-		if err := json.Unmarshal(rawProfile, &profile); err != nil {
-			return nil, nil, nil, fmt.Errorf("decode Hypixel profile: %w", err)
+	var profiles []*Profile
+	for _, raw := range data.Profiles {
+		profile := &Profile{Player: player, Raw: raw}
+		if err := json.Unmarshal(raw, profile); err != nil {
+			return nil, err
 		}
 
-		if (profileName == "" && profile.Selected) || strings.EqualFold(profile.CuteName, profileName) {
-			return player, &profile, rawProfile, nil
+		member, ok := profile.Members[player.ID]
+		if !ok {
+			continue
 		}
+
+		if err := json.Unmarshal(member, &profile.Member); err != nil {
+			return nil, err
+		}
+
+		profile.CollectionTiers = map[string]int{}
+		for _, member := range profile.Members {
+			var data MemberData
+			if err := json.Unmarshal(member, &data); err != nil {
+				return nil, err
+			}
+
+			for _, unlocked := range data.PlayerData.UnlockedCollTiers {
+				i := strings.LastIndex(unlocked, "_")
+				tier, err := strconv.Atoi(unlocked[i+1:])
+				if err != nil {
+					continue
+				}
+
+				name := unlocked[:i]
+				profile.CollectionTiers[name] = max(profile.CollectionTiers[name], tier)
+			}
+		}
+
+		profiles = append(profiles, profile)
 	}
 
-	if profileName == "" {
-		return nil, nil, nil, status.Errorf(codes.NotFound, "%s has no selected profile", player.Name)
+	if len(profiles) == 0 {
+		return nil, status.Errorf(codes.NotFound, "%s has no SkyBlock profiles", player.Name)
 	}
 
-	return nil, nil, nil, status.Errorf(codes.NotFound, "%s has no profile named %s", player.Name, profileName)
-}
-
-func ParseProfile(player *mojang.Profile, data *ProfileData) (*SkyBlockProfile, error) {
-	member, ok := data.Members[player.ID]
-	if !ok {
-		return nil, status.Errorf(codes.NotFound, "%s is not a member of profile %s", player.Name, data.CuteName)
-	}
-
-	return &SkyBlockProfile{
-		ID:     data.ProfileID,
-		Name:   data.CuteName,
-		Data:   &member,
-		Mojang: player,
-	}, nil
+	return profiles, nil
 }

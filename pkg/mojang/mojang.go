@@ -2,9 +2,6 @@ package mojang
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,50 +12,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func NewClient(cache *cache.Cache) *Client {
-	return &Client{
-		cache: cache,
-		http:  http.Client{Timeout: 15 * time.Second},
-	}
+func NewClient(c *cache.Cache) *Client {
+	return &Client{cache: c}
 }
 
 func (c *Client) GetProfile(ctx context.Context, username string) (*Profile, error) {
 	dest := "https://api.minecraftservices.com/minecraft/profile/lookup/name/" + url.QueryEscape(username)
-	cacheKey := fmt.Sprintf("%s:%s", "mojang", dest)
-
-	body, err := c.cache.Do(ctx, cacheKey, 15*time.Minute, func(ctx context.Context) ([]byte, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, dest, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err := c.http.Do(req)
-		if err != nil {
-			return nil, status.Errorf(codes.Unavailable, "Mojang API unavailable: %v", err)
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "player %s not found", username)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, status.Errorf(codes.Unavailable, "Mojang API returned %s: %s", resp.Status, body)
-		}
-
-		return body, nil
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	var profile Profile
-	if err := json.Unmarshal(body, &profile); err != nil {
+	err := c.cache.GetJSON(ctx, "mojang:"+dest, 15*time.Minute, &profile, func(ctx context.Context) (*http.Request, error) {
+		return http.NewRequestWithContext(ctx, http.MethodGet, dest, nil)
+	})
+	if status.Code(err) == codes.NotFound {
+		return nil, status.Errorf(codes.NotFound, "player %s not found", username)
+	}
+
+	if err != nil {
 		return nil, err
 	}
 

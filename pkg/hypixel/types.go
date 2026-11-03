@@ -1,42 +1,31 @@
 package hypixel
 
 import (
-	"net/http"
+	"encoding/json"
 
 	"github.com/guild-link/hypixel-grpc/pkg/cache"
 	"github.com/guild-link/hypixel-grpc/pkg/mojang"
-	pb "github.com/guild-link/hypixel-grpc/proto"
 )
 
 type Client struct {
 	apiKey string
-	http   http.Client
 
 	cache  *cache.Cache
 	mojang *mojang.Client
 }
 
-type SkyBlockProfile struct {
-	Mojang *mojang.Profile
-	Data   *MemberData
+type Profile struct {
+	ID       string `json:"profile_id"`
+	Name     string `json:"cute_name"`
+	GameMode string `json:"game_mode"`
+	Selected bool   `json:"selected"`
 
-	Name string
-	ID   string
-}
+	CollectionTiers map[string]int `json:"-"`
 
-func (p *SkyBlockProfile) ProfileProto() *pb.Profile {
-	return &pb.Profile{Name: p.Name, Id: p.ID}
-}
-
-func (p *SkyBlockProfile) UserProto() *pb.User {
-	return &pb.User{Name: p.Mojang.Name, Id: p.Mojang.ID}
-}
-
-type ProfileData struct {
-	ProfileID string                `json:"profile_id"`
-	CuteName  string                `json:"cute_name"`
-	Selected  bool                  `json:"selected"`
-	Members   map[string]MemberData `json:"members"`
+	Raw     json.RawMessage            `json:"-"`
+	Player  *mojang.Profile            `json:"-"`
+	Member  MemberData                 `json:"-"`
+	Members map[string]json.RawMessage `json:"members"`
 
 	Banking struct {
 		Balance *float64 `json:"balance"`
@@ -44,15 +33,37 @@ type ProfileData struct {
 }
 
 type MemberData struct {
+	Currencies struct {
+		CoinPurse float64 `json:"coin_purse"`
+	} `json:"currencies"`
+
+	Leveling struct {
+		Experience float64 `json:"experience"`
+	} `json:"leveling"`
+
 	PlayerData struct {
-		Experience struct {
-			SkillFarming float64 `json:"SKILL_FARMING"`
-		} `json:"experience"`
+		UnlockedCollTiers []string           `json:"unlocked_coll_tiers"`
+		Experience        map[string]float64 `json:"experience"`
+		Perks             map[string]int     `json:"perks"`
 	} `json:"player_data"`
 
-	Garden struct {
-		Experience float64 `json:"garden_experience"`
-	} `json:"garden_player_data"`
+	PetsData struct {
+		PetCare struct {
+			PetTypesSacrificed []string `json:"pet_types_sacrificed"`
+		} `json:"pet_care"`
+	} `json:"pets_data"`
+
+	JacobContest struct {
+		Perks struct {
+			FarmingLevelCap int `json:"farming_level_cap"`
+		} `json:"perks"`
+	} `json:"jacobs_contest"`
+
+	Slayer struct {
+		SlayerBosses map[string]struct {
+			XP float64 `json:"xp"`
+		} `json:"slayer_bosses"`
+	} `json:"slayer"`
 
 	Dungeons struct {
 		DungeonTypes map[string]struct {
@@ -68,4 +79,13 @@ type MemberData struct {
 		SelectedDungeonClass string  `json:"selected_dungeon_class"`
 		Secrets              float64 `json:"secrets"`
 	} `json:"dungeons"`
+}
+
+type Garden struct {
+	Experience     float64  `json:"garden_experience"`
+	UnlockedPlots  []string `json:"unlocked_plots_ids"`
+	CommissionData struct {
+		TotalCompleted   float64 `json:"total_completed"`
+		UniqueNPCsServed float64 `json:"unique_npcs_served"`
+	} `json:"commission_data"`
 }
