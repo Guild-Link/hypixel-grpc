@@ -13,7 +13,7 @@ func skills(member hypixel.MemberData, collectionTiers map[string]int) *pb.Skill
 	perks := member.PlayerData.Perks
 
 	extraLevels := map[pb.Skill]int{
-		pb.Skill_SKILL_FORAGING: max(perks["agatha_power"]-3, 0) + max(perks["miria_power"]-3, 0),
+		pb.Skill_SKILL_FORAGING: max(perks.AgathaPower-3, 0) + max(perks.MiriaPower-3, 0),
 		pb.Skill_SKILL_TAMING:   len(member.PetsData.PetCare.PetTypesSacrificed),
 		pb.Skill_SKILL_FARMING:  member.JacobContest.Perks.FarmingLevelCap,
 	}

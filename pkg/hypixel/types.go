@@ -44,7 +44,11 @@ type MemberData struct {
 	PlayerData struct {
 		UnlockedCollTiers []string           `json:"unlocked_coll_tiers"`
 		Experience        map[string]float64 `json:"experience"`
-		Perks             map[string]int     `json:"perks"`
+
+		Perks struct {
+			AgathaPower int `json:"agatha_power"`
+			MiriaPower  int `json:"miria_power"`
+		} `json:"perks"`
 	} `json:"player_data"`
 
 	PetsData struct {
